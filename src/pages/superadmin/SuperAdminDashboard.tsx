@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSociety } from '../../context/SocietyContext';
 import { formatCurrency, getStatusBadgeClasses } from '../../utils/formatters';
 import { Society, SubscriptionPlan, SubscriptionStatus } from '../../types';
+import { api } from '../../services/api';
 import {
   Building2,
   Users,
@@ -346,21 +347,12 @@ const OnboardSocietyModal: React.FC<{
     setOtpError('');
     setIsSendingOtp(true);
     try {
-      const response = await fetch('http://localhost:8080/api/auth/otp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: adminPhone, purpose: 'ADMIN_REGISTRATION' }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setIsOtpSent(true);
-        if (data.otp) setOtp(data.otp); // Demo auto-fill convenience
-        setOtpMessage(`OTP sent to ${adminPhone}. (Code: ${data.otp || 'Check SMS'})`);
-      } else {
-        setOtpError(data.message || 'Failed to send OTP.');
-      }
+      const data = await api.sendOtp(adminPhone, 'ADMIN_REGISTRATION');
+      setIsOtpSent(true);
+      if (data.otp) setOtp(data.otp); // Demo auto-fill convenience
+      setOtpMessage(`OTP sent to ${adminPhone}. (Code: ${data.otp || 'Check SMS'})`);
     } catch (err: any) {
-      setOtpError(err.message || 'Network error sending OTP.');
+      setOtpError(err.message || 'Failed to send OTP.');
     } finally {
       setIsSendingOtp(false);
     }
@@ -374,13 +366,8 @@ const OnboardSocietyModal: React.FC<{
     setOtpError('');
     setIsVerifyingOtp(true);
     try {
-      const response = await fetch('http://localhost:8080/api/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: adminPhone, otp, purpose: 'ADMIN_REGISTRATION' }),
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
+      const data = await api.verifyOtp(adminPhone, otp, 'ADMIN_REGISTRATION');
+      if (data.success) {
         setIsOtpVerified(true);
         setOtpMessage(`Mobile number ${adminPhone} verified successfully!`);
       } else {
