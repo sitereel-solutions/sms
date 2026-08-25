@@ -5,7 +5,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "flats", indexes = {
-        @Index(name = "idx_flat_number", columnList = "flatNumber", unique = true),
+        @Index(name = "idx_society_flat_number", columnList = "societyId, flatNumber", unique = true),
         @Index(name = "idx_flat_block", columnList = "block"),
         @Index(name = "idx_flat_occupancy", columnList = "occupancyStatus"),
         @Index(name = "idx_flat_maintenance", columnList = "maintenanceStatus")
@@ -18,7 +18,7 @@ import lombok.*;
 public class Flat {
 
     @Id
-    private String id; // e.g. "flat-A-101"
+    private String id; // e.g. "flat-soc-grv-A-101"
 
     @Builder.Default
     private String societyId = "soc-grv";
