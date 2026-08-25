@@ -21,8 +21,8 @@ USER spring:spring
 # Copy jar from build stage
 COPY --from=builder /app/target/*.jar app.jar
 
-# Expose default port
+ENV PORT=8080
 EXPOSE 8080
 
-# Run Spring Boot app, respecting Render's dynamic PORT environment variable
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar"]
+# Keep memory within Render 512MB limit and listen on dynamic PORT
+ENTRYPOINT ["sh", "-c", "java -Xmx400m -Xss512k -Dserver.port=${PORT:-8080} -jar app.jar"]
