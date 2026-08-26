@@ -45,6 +45,8 @@ export const ResidentDashboardPage: React.FC = () => {
   const myComplaints = complaints.filter((c) => c.flatNumber === flatNumber);
   const latestPayment = myPayments[0];
 
+  const totalPaidYtd = myPayments.reduce((acc, p) => acc + p.amount, 0);
+  const totalCyclesCleared = myPayments.length;
   const maintenanceDueAmount = currentResidentFlat?.monthlyMaintenance || 3500;
   const isPaidThisMonth = latestPayment && (latestPayment.status === 'Success' || latestPayment.date.includes('2026'));
 
@@ -91,10 +93,10 @@ export const ResidentDashboardPage: React.FC = () => {
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-200">
-                Maintenance Due
+                Monthly Maintenance
               </span>
               <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white">
-                Cycle: 10 September 2026
+                Flat {flatNumber}
               </span>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
@@ -102,14 +104,14 @@ export const ResidentDashboardPage: React.FC = () => {
               <span className="text-xs text-indigo-200">/ month</span>
             </div>
             <p className="text-xs text-indigo-100 mt-1">
-              Standard 2 BHK (1,150 sq.ft) maintenance + water & sinking charges
+              {currentResidentFlat?.bhk || '2 BHK'} ({currentResidentFlat?.areaSqFt || 1150} sq.ft) maintenance + water & sinking charges
             </p>
           </div>
 
           <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
             <div className="text-xs">
               <span className="text-indigo-200 block text-[10px]">Due Date</span>
-              <span className="font-bold text-white">10 September 2026</span>
+              <span className="font-bold text-white">10th of every month</span>
             </div>
             <button
               type="button"
@@ -125,12 +127,12 @@ export const ResidentDashboardPage: React.FC = () => {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-soft flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Paid (YTD)</span>
-            <p className="text-2xl font-black text-slate-900 mt-1">₹28,000</p>
-            <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">8 Cycles cleared on time</p>
+            <p className="text-2xl font-black text-slate-900 mt-1">{formatCurrency(totalPaidYtd)}</p>
+            <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">{totalCyclesCleared} Payment records</p>
           </div>
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-400">Current Balance</span>
-            <span className="font-bold text-emerald-600">₹0.00 Outstanding</span>
+            <span className="text-slate-400">Account Status</span>
+            <span className="font-bold text-emerald-600">Active Resident</span>
           </div>
         </div>
 
@@ -138,20 +140,23 @@ export const ResidentDashboardPage: React.FC = () => {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-soft flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Last Payment</span>
-            <p className="text-2xl font-black text-emerald-600 mt-1">₹3,500</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">24 Aug 2026 via UPI</p>
+            <p className="text-2xl font-black text-emerald-600 mt-1">
+              {latestPayment ? formatCurrency(latestPayment.amount) : '₹0'}
+            </p>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              {latestPayment ? `${latestPayment.date} via ${latestPayment.paymentMode}` : 'No payments recorded'}
+            </p>
           </div>
           <div className="pt-3 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => {
-                const r = myPayments.find((p) => p.receiptNumber === 'REC-2026-00842') || myPayments[0];
-                if (r) setSelectedReceipt(r);
-              }}
-              className="w-full py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1"
-            >
-              <Printer className="w-3.5 h-3.5" /> View Receipt
-            </button>
+            {latestPayment && (
+              <button
+                type="button"
+                onClick={() => setSelectedReceipt(latestPayment)}
+                className="w-full py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1"
+              >
+                <Printer className="w-3.5 h-3.5" /> View Receipt #{latestPayment.receiptNumber}
+              </button>
+            )}
           </div>
         </div>
       </div>

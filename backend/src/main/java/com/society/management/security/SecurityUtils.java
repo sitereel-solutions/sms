@@ -2,8 +2,11 @@ package com.society.management.security;
 
 import com.society.management.entity.Role;
 import com.society.management.entity.User;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Optional;
 
@@ -20,9 +23,34 @@ public final class SecurityUtils {
     }
 
     public static String getCurrentSocietyId() {
-        return getCurrentUser()
-                .map(u -> u.getSocietyId() != null ? u.getSocietyId() : "soc-grv")
-                .orElse("soc-grv");
+        Optional<User> userOpt = getCurrentUser();
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            // If Super Admin, allow inspecting specific society via X-Society-ID header
+            if (user.getRole() == Role.ROLE_SUPER_ADMIN) {
+                ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                if (attrs != null) {
+                    HttpServletRequest req = attrs.getRequest();
+                    String headerSoc = req.getHeader("X-Society-ID");
+                    if (headerSoc != null && !headerSoc.isBlank() && !"all".equalsIgnoreCase(headerSoc)) {
+                        return headerSoc;
+                    }
+                }
+            }
+            return user.getSocietyId() != null ? user.getSocietyId() : "soc-grv";
+        }
+        
+        // Fallback for public requests with header
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs != null) {
+            HttpServletRequest req = attrs.getRequest();
+            String headerSoc = req.getHeader("X-Society-ID");
+            if (headerSoc != null && !headerSoc.isBlank()) {
+                return headerSoc;
+            }
+        }
+
+        return "soc-grv";
     }
 
     public static boolean isSuperAdmin() {

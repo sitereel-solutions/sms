@@ -172,12 +172,20 @@ export const SocietyProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const logout = () => {
     api.logout();
+    localStorage.removeItem('sms_current_society_id');
     setAuthUser(null);
     setRole('admin');
   };
 
   const switchRole = (newRole: UserRole) => {
     setRole(newRole);
+    const stored = api.getStoredUser();
+    setAuthUser(stored);
+    if (stored?.societyId) {
+      setCurrentSocietyId(stored.societyId);
+      localStorage.setItem('sms_current_society_id', stored.societyId);
+    }
+    refreshData();
   };
 
   const showToast = (type: ToastMessage['type'], title: string, description?: string) => {
@@ -258,8 +266,9 @@ export const SocietyProvider: React.FC<{ children: ReactNode }> = ({ children })
     refreshData();
   }, []);
 
-  const switchSociety = (societyId: string) => {
+  const switchSociety = async (societyId: string) => {
     setCurrentSocietyId(societyId);
+    localStorage.setItem('sms_current_society_id', societyId);
     const target = societies.find((s) => s.id === societyId);
     if (target) {
       setSocietySettings((prev) => ({
@@ -272,6 +281,7 @@ export const SocietyProvider: React.FC<{ children: ReactNode }> = ({ children })
       }));
       showToast('info', 'Switched Society', `Now managing ${target.name}`);
     }
+    await refreshData();
   };
 
   const addSociety = async (data: Partial<Society> & { adminName?: string; adminEmail?: string; adminPassword?: string; adminPhone?: string }): Promise<Society> => {

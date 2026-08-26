@@ -34,11 +34,15 @@ export interface AuthResponse {
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('sms_auth_token');
+  const currentSociety = localStorage.getItem('sms_current_society_id');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (currentSociety) {
+    headers['X-Society-ID'] = currentSociety;
   }
   return headers;
 }

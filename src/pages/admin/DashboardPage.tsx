@@ -60,6 +60,7 @@ export const DashboardPage: React.FC = () => {
     maintenanceRecords,
     payments,
     expenses,
+    complaints,
     activities,
     setSelectedReceipt,
     setSelectedFlat,
@@ -72,8 +73,21 @@ export const DashboardPage: React.FC = () => {
   const [isGenerateMaintOpen, setIsGenerateMaintOpen] = useState<boolean>(false);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('August 2026');
 
+  // Real database-calculated stats
+  const totalFlatsCount = flats.length || societySettings.totalFlats || 0;
   const occupiedFlatsCount = flats.filter((f) => f.occupancyStatus === 'Occupied').length;
-  const vacantFlatsCount = flats.filter((f) => f.occupancyStatus === 'Vacant').length;
+  const vacantFlatsCount = Math.max(0, totalFlatsCount - occupiedFlatsCount);
+  const occupancyRate = totalFlatsCount > 0 ? Math.round((occupiedFlatsCount / totalFlatsCount) * 100) : 0;
+
+  const totalCollected = payments.reduce((acc, p) => acc + p.amount, 0);
+  const totalExpenses = expenses.reduce((acc, exp) => acc + exp.amount, 0);
+  const totalPending = maintenanceRecords
+    .filter((m) => m.status !== 'Paid')
+    .reduce((acc, m) => acc + (m.balanceAmount || m.totalAmount || 0), 0);
+  const currentBalance = totalCollected - totalExpenses;
+  const totalBilled = totalCollected + totalPending;
+  const collectionRate = totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 0;
+  const openComplaintsCount = complaints.filter((c) => c.status === 'Open' || c.status === 'In Progress').length;
 
   const totalMaint = maintenanceRecords.length || 1;
   const paidCount = maintenanceRecords.filter((m) => m.status === 'Paid').length;
@@ -86,7 +100,7 @@ export const DashboardPage: React.FC = () => {
     { name: `Overdue (${Math.round((overdueCount / totalMaint) * 100)}%)`, value: overdueCount, color: '#f43f5e' },
   ].filter((d) => d.value > 0);
 
-  // Group live expenses by category
+  // Group live expenses by category from database
   const expenseCategories = expenses.reduce((acc, exp) => {
     acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
     return acc;
@@ -100,9 +114,7 @@ export const DashboardPage: React.FC = () => {
         color: colorPalette[idx % colorPalette.length],
       }))
     : [
-        { name: 'Security', value: 56000, color: '#6366f1' },
-        { name: 'Electricity', value: 18500, color: '#f59e0b' },
-        { name: 'Housekeeping', value: 32000, color: '#06b6d4' },
+        { name: 'General', value: totalExpenses || 1000, color: '#6366f1' },
       ];
 
   const pendingMaintenanceRows = maintenanceRecords
@@ -118,7 +130,7 @@ export const DashboardPage: React.FC = () => {
     }));
 
   const handleExport = () => {
-    showToast('success', 'Monthly Summary Exported', 'Green_Valley_August_2026_Report.pdf generated successfully.');
+    showToast('success', 'Monthly Summary Exported', `${societySettings.name}_Report.pdf generated successfully.`);
   };
 
   return (
@@ -226,13 +238,13 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900 tracking-tight">120</span>
-            <span className="text-xs font-semibold text-slate-400">across 6 blocks</span>
+            <span className="text-3xl font-black text-slate-900 tracking-tight">{totalFlatsCount}</span>
+            <span className="text-xs font-semibold text-slate-400">Flats Registered</span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
-            <span className="font-semibold text-emerald-600">108 Occupied</span>
+            <span className="font-semibold text-emerald-600">{occupiedFlatsCount} Occupied</span>
             <span>·</span>
-            <span className="font-semibold text-slate-400">12 Vacant</span>
+            <span className="font-semibold text-slate-400">{vacantFlatsCount} Vacant</span>
           </div>
         </div>
 
@@ -245,11 +257,11 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900 tracking-tight">108</span>
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">90% Rate</span>
+            <span className="text-3xl font-black text-slate-900 tracking-tight">{occupiedFlatsCount}</span>
+            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{occupancyRate}% Rate</span>
           </div>
           <div className="mt-2 text-[11px] text-slate-500 font-medium">
-            108 Active family units registered
+            {residents.length} Active residents registered
           </div>
         </div>
 
@@ -262,27 +274,27 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-rose-600 tracking-tight">₹1,24,500</span>
+            <span className="text-3xl font-black text-rose-600 tracking-tight">{formatCurrency(totalPending)}</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-[11px] text-rose-600 font-semibold">
-            <span>12 Flats with unpaid maintenance</span>
+            <span>{pendingCount + overdueCount} Bills pending payment</span>
           </div>
         </div>
 
         {/* Collected This Month */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-soft relative overflow-hidden group hover:border-slate-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Collected This Month</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Collections</span>
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <ArrowUpRight className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-emerald-600 tracking-tight">₹3,84,000</span>
+            <span className="text-3xl font-black text-emerald-600 tracking-tight">{formatCurrency(totalCollected)}</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-500">
-            <span className="font-semibold text-emerald-600">+9.5%</span>
-            <span>vs previous month</span>
+            <span className="font-semibold text-emerald-600">{payments.length} Payments</span>
+            <span>recorded in database</span>
           </div>
         </div>
       </div>
@@ -292,9 +304,9 @@ export const DashboardPage: React.FC = () => {
         {/* Monthly Expenses */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-soft flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Monthly Expenses</span>
-            <span className="text-xl font-black text-slate-900 mt-0.5 block">₹1,72,400</span>
-            <span className="text-[10px] text-slate-400">Target: Under ₹1.80L</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Expenses</span>
+            <span className="text-xl font-black text-slate-900 mt-0.5 block">{formatCurrency(totalExpenses)}</span>
+            <span className="text-[10px] text-slate-400">{expenses.length} Vouchers in database</span>
           </div>
           <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
             <TrendingUp className="w-5 h-5" />
@@ -304,9 +316,9 @@ export const DashboardPage: React.FC = () => {
         {/* Society Balance */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-soft flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Society Balance</span>
-            <span className="text-xl font-black text-emerald-600 mt-0.5 block">₹6,42,800</span>
-            <span className="text-[10px] text-emerald-600 font-semibold">+₹2,11,600 net surplus</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Current Balance</span>
+            <span className="text-xl font-black text-emerald-600 mt-0.5 block">{formatCurrency(currentBalance)}</span>
+            <span className="text-[10px] text-emerald-600 font-semibold">{currentBalance >= 0 ? 'Net Surplus' : 'Deficit'}</span>
           </div>
           <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
             <Receipt className="w-5 h-5" />
@@ -316,12 +328,11 @@ export const DashboardPage: React.FC = () => {
         {/* Open Complaints */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-soft flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Open Complaints</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Complaints</span>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xl font-black text-slate-900">8</span>
-              <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">3 High</span>
+              <span className="text-xl font-black text-slate-900">{openComplaintsCount} Active</span>
             </div>
-            <span className="text-[10px] text-slate-400">14 Resolved this month</span>
+            <span className="text-[10px] text-slate-400">{complaints.length} Total tickets logged</span>
           </div>
           <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl">
             <ShieldAlert className="w-5 h-5" />
@@ -332,8 +343,8 @@ export const DashboardPage: React.FC = () => {
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-soft flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Collection Rate</span>
-            <span className="text-xl font-black text-indigo-600 mt-0.5 block">86%</span>
-            <span className="text-[10px] text-slate-400">₹3.84L of ₹4.20L billed</span>
+            <span className="text-xl font-black text-indigo-600 mt-0.5 block">{collectionRate}%</span>
+            <span className="text-[10px] text-slate-400">{paidCount} of {totalMaint} records cleared</span>
           </div>
           <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
             <Sparkles className="w-5 h-5" />
