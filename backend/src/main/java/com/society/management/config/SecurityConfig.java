@@ -35,6 +35,8 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // Permit all CORS preflight OPTIONS requests unconditionally
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Public Authentication Endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         // Public Swagger & OpenAPI Docs
