@@ -42,19 +42,20 @@ import { AddExpenseModal } from '../../components/modals/AddExpenseModal';
 import { GenerateMaintenanceModal } from '../../components/modals/GenerateMaintenanceModal';
 
 const MONTHLY_CHART_DATA = [
-  { month: 'Jan', collection: 375000, expenses: 162000, balance: 480000 },
-  { month: 'Feb', collection: 380000, expenses: 158000, balance: 502000 },
-  { month: 'Mar', collection: 368000, expenses: 184000, balance: 520000 },
-  { month: 'Apr', collection: 392000, expenses: 165000, balance: 547000 },
-  { month: 'May', collection: 385000, expenses: 178000, balance: 574000 },
-  { month: 'Jun', collection: 378000, expenses: 190000, balance: 592000 },
-  { month: 'Jul', collection: 390000, expenses: 168000, balance: 614000 },
+  // { month: 'Jan', collection: 375000, expenses: 162000, balance: 480000 },
+  // { month: 'Feb', collection: 380000, expenses: 158000, balance: 502000 },
+  // { month: 'Mar', collection: 368000, expenses: 184000, balance: 520000 },
+  // { month: 'Apr', collection: 392000, expenses: 165000, balance: 547000 },
+  // { month: 'May', collection: 385000, expenses: 178000, balance: 574000 },
+  // { month: 'Jun', collection: 378000, expenses: 190000, balance: 592000 },
+  // { month: 'Jul', collection: 390000, expenses: 168000, balance: 614000 },
   { month: 'Aug', collection: 384000, expenses: 172400, balance: 642800 },
 ];
 
 export const DashboardPage: React.FC = () => {
   const {
     societySettings,
+    authUser,
     flats,
     residents,
     maintenanceRecords,
@@ -133,16 +134,18 @@ export const DashboardPage: React.FC = () => {
     showToast('success', 'Monthly Summary Exported', `${societySettings.name}_Report.pdf generated successfully.`);
   };
 
+  console.log(authUser);
+  
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Top Welcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Good Morning, Admin 👋</h1>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Good Morning,{authUser?.name}</h1>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Here’s what’s happening in <strong className="text-slate-800 font-semibold">{societySettings.name}</strong> today.
+            Here’s what’s happening in <strong className="text-slate-800 font-semibold">{authUser?.societyName}</strong> today.
           </p>
         </div>
 
