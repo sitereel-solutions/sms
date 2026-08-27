@@ -33,6 +33,9 @@ jobs:
       - name: Lint frontend code
         run: npm run lint
 
+      - name: Run Frontend UI Tests (Vitest)
+        run: npm test
+
       - name: Build frontend production bundle
         run: npm run build
 
