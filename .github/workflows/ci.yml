@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feature/*]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Frontend CI (Lint, Typecheck & Vite Production Build)
+  # -------------------------------------------------------------
+  frontend-ci:
+    name: Frontend (Lint & Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Lint frontend code
+        run: npm run lint
+
+      - name: Run Frontend UI Tests (Vitest)
+        run: npm test
+
+      - name: Build frontend production bundle
+        run: npm run build
+
+  # -------------------------------------------------------------
+  # Job 2: Backend CI (Unit & Controller Tests including Login / Auth)
+  # -------------------------------------------------------------
+  backend-ci:
+    name: Backend (Unit & Auth Tests)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: sms_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sms_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Run Backend Tests (Auth & Logic)
+        working-directory: backend
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean test
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/sms_db
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+
+      - name: Upload Test Report Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-test-reports
+          path: backend/target/surefire-reports/
