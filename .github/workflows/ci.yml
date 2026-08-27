@@ -72,7 +72,9 @@ jobs:
 
       - name: Run Backend Tests (Auth & Logic)
         working-directory: backend
-        run: ./mvnw clean test
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean test
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/sms_db
           SPRING_DATASOURCE_USERNAME: postgres
