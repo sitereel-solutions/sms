@@ -66,50 +66,50 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // Seed Societies if none exist
-        if (societyRepository.count() == 0) {
-            seedSocieties();
-        }
-
-        // Seed Users if none exist
-        if (userRepository.count() == 0) {
-            seedUsers();
-        }
-
-        if (flatRepository.count() > 0) {
-            log.info("Database already seeded with flats. Skipping DataInitializer.");
-            return;
-        }
+//        if (societyRepository.count() == 0) {
+//            seedSocieties();
+//        }
+//
+//        // Seed Users if none exist
+//        if (userRepository.count() == 0) {
+//            seedUsers();
+//        }
+//
+//        if (flatRepository.count() > 0) {
+//            log.info("Database already seeded with flats. Skipping DataInitializer.");
+//            return;
+//        }
 
         log.info("Starting database seeding for Society Management System...");
 
         // 1. Seed Society Settings
-        seedSocietySettings();
+//        seedSocietySettings();
 
         // 2. Seed Flats for both Green Valley and Royal Palm
-        seedFlats();
+//        seedFlats();
 
         // 3. Seed Residents
-        seedResidents();
+//        seedResidents();
 
         // 4. Seed Maintenance Records for August 2026
-        seedMaintenanceRecords();
+//        seedMaintenanceRecords();
 
         // 5. Seed Payments
-        seedPayments();
+//        seedPayments();
 
         // 6. Seed Expenses
-        seedExpenses();
+//        seedExpenses();
 
         // 7. Seed Notices
-        seedNotices();
+//        seedNotices();
 
         // 8. Seed Complaints
-        seedComplaints();
+//        seedComplaints();
 
         // 9. Seed Activities
-        seedActivities();
+//        seedActivities();
 
-        log.info("Database seeding completed successfully!");
+//        log.info("Database seeding completed successfully!");
     }
 
     private void seedSocieties() {
