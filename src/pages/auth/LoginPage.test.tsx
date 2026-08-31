@@ -1,10 +1,13 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import LoginPage from './LoginPage';
 import { api } from '../../services/api';
 
-// Mock react-router-dom
+// Mock navigation
 const mockNavigate = vi.fn();
+
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
@@ -12,6 +15,7 @@ vi.mock('react-router-dom', () => ({
 // Mock SocietyContext
 const mockSetRole = vi.fn();
 const mockShowToast = vi.fn();
+
 vi.mock('../../context/SocietyContext', () => ({
   useSociety: () => ({
     setRole: mockSetRole,
@@ -19,7 +23,7 @@ vi.mock('../../context/SocietyContext', () => ({
   }),
 }));
 
-// Mock API service
+// Mock API
 vi.mock('../../services/api', () => ({
   api: {
     login: vi.fn(),
@@ -29,38 +33,107 @@ vi.mock('../../services/api', () => ({
   },
 }));
 
-describe('Frontend UI: LoginPage Component', () => {
+describe('LoginPage', () => {
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders the login page elements correctly', () => {
+
+  // --------------------------------------------------
+  // 1. RENDER TEST
+  // --------------------------------------------------
+
+  it('renders the login page correctly', () => {
+
     render(<LoginPage />);
 
-    expect(screen.getAllByText(/SocietySaaS/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('heading', { name: /Welcome Back/i })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/admin@greenvalleyresidency.in/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/admin123 or resident123/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign In to Portal/i })).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/SocietySaaS/i).length
+    ).toBeGreaterThan(0);
+
+    expect(
+      screen.getByRole('heading', {
+        name: /Welcome Back/i,
+      })
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByPlaceholderText(
+        /admin@greenvalleyresidency.in/i
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByPlaceholderText(
+        /admin123 or resident123/i
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', {
+        name: /Sign In to Portal/i,
+      })
+    ).toBeInTheDocument();
   });
 
-  it('allows user to switch between Sign In and Register tabs', () => {
+
+  // --------------------------------------------------
+  // 2. TAB SWITCH TEST
+  // --------------------------------------------------
+
+  it('allows switching between Sign In and Register', async () => {
+
+    const user = userEvent.setup();
+
     render(<LoginPage />);
 
-    const registerTab = screen.getByRole('button', { name: /Register Society Admin/i });
-    fireEvent.click(registerTab);
+    const registerTab = screen.getByRole(
+      'button',
+      {
+        name: /Register Society Admin/i,
+      }
+    );
 
-    expect(screen.getByRole('heading', { name: /Register Society Admin/i })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Rajesh Kulkarni/i)).toBeInTheDocument();
+    await user.click(registerTab);
 
-    const signInTab = screen.getByRole('button', { name: /Sign In/i });
-    fireEvent.click(signInTab);
+    expect(
+      screen.getByRole('heading', {
+        name: /Register Society Admin/i,
+      })
+    ).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', { name: /Welcome Back/i })).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Rajesh Kulkarni/i)
+    ).toBeInTheDocument();
+
+
+    const signInTab = screen.getByRole(
+      'button',
+      {
+        name: /Sign In/i,
+      }
+    );
+
+    await user.click(signInTab);
+
+    expect(
+      screen.getByRole('heading', {
+        name: /Welcome Back/i,
+      })
+    ).toBeInTheDocument();
   });
 
-  it('handles successful sign-in flow and redirects', async () => {
-    (api.login as any).mockResolvedValueOnce({
+
+  // --------------------------------------------------
+  // 3. SUCCESSFUL LOGIN
+  // --------------------------------------------------
+
+  it('handles successful sign-in and redirects admin', async () => {
+
+    const user = userEvent.setup();
+
+    vi.mocked(api.login).mockResolvedValueOnce({
       token: 'fake-jwt-token-xyz',
       id: 1,
       name: 'Rajesh Sharma',
@@ -72,41 +145,109 @@ describe('Frontend UI: LoginPage Component', () => {
 
     render(<LoginPage />);
 
-    const emailInput = screen.getByPlaceholderText(/admin@greenvalleyresidency.in/i);
-    const passwordInput = screen.getByPlaceholderText(/admin123 or resident123/i);
-    const submitBtn = screen.getByRole('button', { name: /Sign In to Portal/i });
+    const emailInput = screen.getByPlaceholderText(
+      /admin@greenvalleyresidency.in/i
+    );
 
-    fireEvent.change(emailInput, { target: { value: 'admin@greenvalleyresidency.in' } });
-    fireEvent.change(passwordInput, { target: { value: 'admin123' } });
-    fireEvent.click(submitBtn);
+    const passwordInput = screen.getByPlaceholderText(
+      /admin123 or resident123/i
+    );
+
+    const submitBtn = screen.getByRole(
+      'button',
+      {
+        name: /Sign In to Portal/i,
+      }
+    );
+
+    await user.type(
+      emailInput,
+      'admin@greenvalleyresidency.in'
+    );
+
+    await user.type(
+      passwordInput,
+      'admin123'
+    );
+
+    await user.click(submitBtn);
+
 
     await waitFor(() => {
-      expect(api.login).toHaveBeenCalledWith('admin@greenvalleyresidency.in', 'admin123');
-      expect(mockSetRole).toHaveBeenCalledWith('admin');
+
+      expect(api.login).toHaveBeenCalledWith(
+        'admin@greenvalleyresidency.in',
+        'admin123'
+      );
+
+      expect(mockSetRole).toHaveBeenCalledWith(
+        'admin'
+      );
+
       expect(mockShowToast).toHaveBeenCalledWith(
         'success',
         expect.stringContaining('Rajesh Sharma'),
-        expect.stringContaining('Green Valley Residency')
+        expect.stringContaining(
+          'Green Valley Residency'
+        )
       );
-      expect(mockNavigate).toHaveBeenCalledWith('/admin');
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/admin'
+      );
     });
   });
 
-  it('handles sign-in error and displays error toast', async () => {
-    (api.login as any).mockRejectedValueOnce(new Error('Invalid email or password'));
+
+  // --------------------------------------------------
+  // 4. LOGIN FAILURE
+  // --------------------------------------------------
+
+  it('handles invalid login credentials', async () => {
+
+    const user = userEvent.setup();
+
+    vi.mocked(api.login).mockRejectedValueOnce(
+      new Error('Invalid email or password')
+    );
 
     render(<LoginPage />);
 
-    const emailInput = screen.getByPlaceholderText(/admin@greenvalleyresidency.in/i);
-    const passwordInput = screen.getByPlaceholderText(/admin123 or resident123/i);
-    const submitBtn = screen.getByRole('button', { name: /Sign In to Portal/i });
+    const emailInput = screen.getByPlaceholderText(
+      /admin@greenvalleyresidency.in/i
+    );
 
-    fireEvent.change(emailInput, { target: { value: 'wrong@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'badpass' } });
-    fireEvent.click(submitBtn);
+    const passwordInput = screen.getByPlaceholderText(
+      /admin123 or resident123/i
+    );
+
+    const submitBtn = screen.getByRole(
+      'button',
+      {
+        name: /Sign In to Portal/i,
+      }
+    );
+
+    await user.type(
+      emailInput,
+      'wrong@example.com'
+    );
+
+    await user.type(
+      passwordInput,
+      'badpass'
+    );
+
+    await user.click(submitBtn);
+
 
     await waitFor(() => {
-      expect(api.login).toHaveBeenCalledWith('wrong@example.com', 'badpass');
+
+      expect(api.login).toHaveBeenCalledWith(
+        'wrong@example.com',
+        'badpass'
+      );
+
       expect(mockShowToast).toHaveBeenCalledWith(
         'error',
         'Login Failed',
@@ -115,17 +256,44 @@ describe('Frontend UI: LoginPage Component', () => {
     });
   });
 
-  it('opens and closes forgot password OTP modal', () => {
+
+  // --------------------------------------------------
+  // 5. FORGOT PASSWORD MODAL
+  // --------------------------------------------------
+
+  it('opens and closes forgot password modal', async () => {
+
+    const user = userEvent.setup();
+
     render(<LoginPage />);
 
-    const forgotBtn = screen.getByText(/Forgot password with OTP\?/i);
-    fireEvent.click(forgotBtn);
+    const forgotBtn = screen.getByText(
+      /Forgot password with OTP\?/i
+    );
 
-    expect(screen.getByRole('heading', { name: /Reset Password via Mobile OTP/i })).toBeInTheDocument();
+    await user.click(forgotBtn);
 
-    const cancelBtn = screen.getByRole('button', { name: /Cancel/i });
-    fireEvent.click(cancelBtn);
+    expect(
+      screen.getByRole('heading', {
+        name: /Reset Password via Mobile OTP/i,
+      })
+    ).toBeInTheDocument();
 
-    expect(screen.queryByRole('heading', { name: /Reset Password via Mobile OTP/i })).not.toBeInTheDocument();
+
+    const cancelBtn = screen.getByRole(
+      'button',
+      {
+        name: /Cancel/i,
+      }
+    );
+
+    await user.click(cancelBtn);
+
+    expect(
+      screen.queryByRole('heading', {
+        name: /Reset Password via Mobile OTP/i,
+      })
+    ).not.toBeInTheDocument();
   });
+
 });
